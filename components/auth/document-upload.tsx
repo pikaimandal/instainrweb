@@ -68,13 +68,21 @@ export default function DocumentUpload({ onNext, onBack, updateUserData }: Docum
         stopCamera()
       }
 
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "environment" },
-        audio: false,
-      })
+      // For mobile devices, try to use the back camera specifically
+      const constraints = {
+        video: { 
+          facingMode: "environment",
+          width: { ideal: 1920 },
+          height: { ideal: 1080 }
+        },
+        audio: false
+      }
+
+      const stream = await navigator.mediaDevices.getUserMedia(constraints)
 
       if (videoRef.current) {
         videoRef.current.srcObject = stream
+        videoRef.current.play().catch(err => console.error("Error playing video:", err))
         streamRef.current = stream
         setActiveCamera(type)
         setCameraError(null)
@@ -201,7 +209,12 @@ export default function DocumentUpload({ onNext, onBack, updateUserData }: Docum
             </div>
 
             <div className="flex-1 relative bg-black rounded-lg overflow-hidden mb-4">
-              <video ref={videoRef} autoPlay playsInline className="w-full h-full object-contain"></video>
+              <video 
+                ref={videoRef} 
+                autoPlay 
+                playsInline 
+                className="w-full h-full object-contain"
+              ></video>
 
               {cameraError && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center text-white p-4">
@@ -211,8 +224,15 @@ export default function DocumentUpload({ onNext, onBack, updateUserData }: Docum
               )}
             </div>
 
-            <button onClick={captureImage} className="primary-button">
-              <i className="fas fa-camera mr-2"></i>
+            <div className="flex justify-center mb-2">
+              <p className="text-white text-sm">Position document within frame and ensure it's clearly visible</p>
+            </div>
+
+            <button 
+              onClick={captureImage} 
+              className="primary-button flex items-center justify-center gap-2"
+            >
+              <i className="fas fa-camera"></i>
               Capture
             </button>
           </div>
