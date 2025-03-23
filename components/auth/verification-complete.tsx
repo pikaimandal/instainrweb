@@ -62,7 +62,7 @@ export default function VerificationComplete({ onComplete, userData }: Verificat
             <div className="w-6 h-6 rounded-full bg-success text-white flex items-center justify-center text-xs mb-2">
               <i className="fas fa-check"></i>
             </div>
-            <div className="text-xs text-success font-medium">Complete</div>
+            <div className="text-xs text-success font-medium">Done</div>
           </div>
         </div>
       </div>

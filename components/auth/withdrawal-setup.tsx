@@ -146,7 +146,7 @@ export default function WithdrawalSetup({ onNext, onBack, updateUserData }: With
             <div className="w-6 h-6 rounded-full bg-border text-text-tertiary flex items-center justify-center text-xs mb-2">
               6
             </div>
-            <div className="text-xs text-text-tertiary">Complete</div>
+            <div className="text-xs text-text-tertiary">Done</div>
           </div>
         </div>
       </div>
