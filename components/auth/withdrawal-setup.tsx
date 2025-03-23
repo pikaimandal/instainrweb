@@ -21,6 +21,25 @@ export default function WithdrawalSetup({ onNext, onBack, updateUserData }: With
   const [isPrimary, setIsPrimary] = useState(true)
   const [errors, setErrors] = useState<{ [key: string]: string }>({})
 
+  const handleBankNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // Convert to uppercase
+    setBankName(e.target.value.toUpperCase())
+  }
+
+  const handleAccountHolderNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // Convert to uppercase
+    setAccountHolderName(e.target.value.toUpperCase())
+  }
+
+  const handleMobileNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value
+    // Only allow digits and limit to 10 characters
+    const phoneRegex = /^\d{0,10}$/
+    if (phoneRegex.test(value)) {
+      setMobileNumber(value)
+    }
+  }
+
   const validate = () => {
     const newErrors: { [key: string]: string } = {}
 
@@ -115,7 +134,7 @@ export default function WithdrawalSetup({ onNext, onBack, updateUserData }: With
             <div className="w-6 h-6 rounded-full bg-success text-white flex items-center justify-center text-xs mb-2">
               <i className="fas fa-check"></i>
             </div>
-            <div className="text-xs text-success font-medium">Documents</div>
+            <div className="text-xs text-success font-medium">KYC</div>
           </div>
           <div className="flex flex-col items-center flex-1">
             <div className="w-6 h-6 rounded-full bg-primary text-white flex items-center justify-center text-xs mb-2">
@@ -164,8 +183,8 @@ export default function WithdrawalSetup({ onNext, onBack, updateUserData }: With
                 <input
                   type="text"
                   value={bankName}
-                  onChange={(e) => setBankName(e.target.value)}
-                  placeholder="Enter bank name"
+                  onChange={handleBankNameChange}
+                  placeholder="ENTER BANK NAME"
                   className={`h-12 px-4 border ${errors.bankName ? "border-danger" : "border-border"} rounded-lg text-base text-text-primary bg-white w-full`}
                 />
                 {errors.bankName && <p className="text-xs text-danger mt-1">{errors.bankName}</p>}
@@ -197,8 +216,8 @@ export default function WithdrawalSetup({ onNext, onBack, updateUserData }: With
                 <input
                   type="text"
                   value={accountHolderName}
-                  onChange={(e) => setAccountHolderName(e.target.value)}
-                  placeholder="Enter account holder name"
+                  onChange={handleAccountHolderNameChange}
+                  placeholder="ENTER ACCOUNT HOLDER NAME"
                   className={`h-12 px-4 border ${errors.accountHolderName ? "border-danger" : "border-border"} rounded-lg text-base text-text-primary bg-white w-full`}
                 />
                 {errors.accountHolderName && <p className="text-xs text-danger mt-1">{errors.accountHolderName}</p>}
@@ -271,13 +290,19 @@ export default function WithdrawalSetup({ onNext, onBack, updateUserData }: With
               </div>
               <div>
                 <label className="text-sm text-text-tertiary mb-2 block">Mobile Number</label>
-                <input
-                  type="tel"
-                  value={mobileNumber}
-                  onChange={(e) => setMobileNumber(e.target.value)}
-                  placeholder="Enter mobile number"
-                  className={`h-12 px-4 border ${errors.mobileNumber ? "border-danger" : "border-border"} rounded-lg text-base text-text-primary bg-white w-full`}
-                />
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                    <span className="text-gray-500">+91</span>
+                  </div>
+                  <input
+                    type="tel"
+                    value={mobileNumber}
+                    onChange={handleMobileNumberChange}
+                    placeholder="9988776655"
+                    maxLength={10}
+                    className={`h-12 px-4 pl-12 border ${errors.mobileNumber ? "border-danger" : "border-border"} rounded-lg text-base text-text-primary bg-white w-full`}
+                  />
+                </div>
                 {errors.mobileNumber && <p className="text-xs text-danger mt-1">{errors.mobileNumber}</p>}
               </div>
             </div>

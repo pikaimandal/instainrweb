@@ -73,7 +73,7 @@ export default function WorldIDAuth({ onNext, onBack, updateUserData }: WorldIDA
             <div className="w-6 h-6 rounded-full bg-border text-text-tertiary flex items-center justify-center text-xs mb-2">
               4
             </div>
-            <div className="text-xs text-text-tertiary">Documents</div>
+            <div className="text-xs text-text-tertiary">KYC</div>
           </div>
           <div className="flex flex-col items-center flex-1">
             <div className="w-6 h-6 rounded-full bg-border text-text-tertiary flex items-center justify-center text-xs mb-2">

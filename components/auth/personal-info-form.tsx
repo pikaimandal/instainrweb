@@ -23,41 +23,47 @@ export default function PersonalInfoForm({ onNext, onBack, updateUserData, userD
   const [name, setName] = useState(userData.name || "")
   const [email, setEmail] = useState(userData.email || "")
   const [phone, setPhone] = useState(userData.phone || "")
-  const [errors, setErrors] = useState<{
-    name?: string
-    email?: string
-    phone?: string
-  }>({})
+  const [errors, setErrors] = useState<Record<string, string>>({})
 
-  const validate = () => {
-    const newErrors: {
-      name?: string
-      email?: string
-      phone?: string
-    } = {}
+  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // Convert to uppercase
+    setName(e.target.value.toUpperCase())
+  }
 
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value
+    // Only allow digits and limit to 10 characters
+    const phoneRegex = /^\d{0,10}$/
+    if (phoneRegex.test(value)) {
+      setPhone(value)
+    }
+  }
+
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {}
+    
     if (!name.trim()) {
       newErrors.name = "Name is required"
     }
-
+    
     if (!email.trim()) {
       newErrors.email = "Email is required"
     } else if (!/\S+@\S+\.\S+/.test(email)) {
-      newErrors.email = "Email is invalid"
+      newErrors.email = "Please enter a valid email"
     }
-
+    
     if (!phone.trim()) {
       newErrors.phone = "Phone number is required"
-    } else if (!/^\d{10}$/.test(phone.replace(/\D/g, ""))) {
+    } else if (phone.length !== 10) {
       newErrors.phone = "Phone number must be 10 digits"
     }
-
+    
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
 
   const handleSubmit = () => {
-    if (validate()) {
+    if (validateForm()) {
       updateUserData({ name, email, phone })
       onNext()
     }
@@ -93,7 +99,7 @@ export default function PersonalInfoForm({ onNext, onBack, updateUserData, userD
             <div className="w-6 h-6 rounded-full bg-border text-text-tertiary flex items-center justify-center text-xs mb-2">
               4
             </div>
-            <div className="text-xs text-text-tertiary">Documents</div>
+            <div className="text-xs text-text-tertiary">KYC</div>
           </div>
           <div className="flex flex-col items-center flex-1">
             <div className="w-6 h-6 rounded-full bg-border text-text-tertiary flex items-center justify-center text-xs mb-2">
@@ -110,55 +116,59 @@ export default function PersonalInfoForm({ onNext, onBack, updateUserData, userD
         </div>
       </div>
 
-      <div className="bg-white rounded-xl p-5 shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
-        <h2 className="text-xl font-semibold mb-5">Personal Information</h2>
-
-        <div className="space-y-4 mb-6">
-          <div>
-            <label className="text-sm text-text-tertiary mb-2 block">Full Name</label>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Enter your full name"
-              className={`h-12 px-4 border ${errors.name ? "border-danger" : "border-border"} rounded-lg text-base text-text-primary bg-white w-full`}
-            />
-            {errors.name && <p className="text-xs text-danger mt-1">{errors.name}</p>}
-          </div>
-
-          <div>
-            <label className="text-sm text-text-tertiary mb-2 block">Email Address</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="Enter your email address"
-              className={`h-12 px-4 border ${errors.email ? "border-danger" : "border-border"} rounded-lg text-base text-text-primary bg-white w-full`}
-            />
-            {errors.email && <p className="text-xs text-danger mt-1">{errors.email}</p>}
-          </div>
-
-          <div>
-            <label className="text-sm text-text-tertiary mb-2 block">Phone Number</label>
+      <div className="bg-white rounded-2xl p-6 shadow-sm mb-6">
+        <h2 className="text-2xl font-bold mb-6">Personal Information</h2>
+        
+        <div className="mb-4">
+          <label className="block text-gray-500 mb-2">Full Name</label>
+          <input
+            type="text"
+            value={name}
+            onChange={handleNameChange}
+            className="w-full p-3 bg-white text-gray-900 border border-gray-200 rounded-lg"
+            placeholder="YOUR FULL NAME"
+          />
+          {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name}</p>}
+        </div>
+        
+        <div className="mb-4">
+          <label className="block text-gray-500 mb-2">Email Address</label>
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="w-full p-3 bg-white text-gray-900 border border-gray-200 rounded-lg"
+            placeholder="email@example.com"
+          />
+          {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
+        </div>
+        
+        <div className="mb-4">
+          <label className="block text-gray-500 mb-2">Phone Number</label>
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+              <span className="text-gray-500">+91</span>
+            </div>
             <input
               type="tel"
               value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              placeholder="Enter your phone number"
-              className={`h-12 px-4 border ${errors.phone ? "border-danger" : "border-border"} rounded-lg text-base text-text-primary bg-white w-full`}
+              onChange={handlePhoneChange}
+              className="w-full p-3 pl-12 bg-white text-gray-900 border border-gray-200 rounded-lg"
+              placeholder="9988776655"
+              maxLength={10}
             />
-            {errors.phone && <p className="text-xs text-danger mt-1">{errors.phone}</p>}
           </div>
+          {errors.phone && <p className="text-red-500 text-sm mt-1">{errors.phone}</p>}
         </div>
-
-        <div className="flex justify-between">
-          <button onClick={onBack} className="secondary-button w-[48%]">
-            Back
-          </button>
-          <button onClick={handleSubmit} className="primary-button w-[48%]">
-            Continue
-          </button>
-        </div>
+      </div>
+      
+      <div className="flex justify-between">
+        <button onClick={onBack} className="secondary-button w-[48%]">
+          Back
+        </button>
+        <button onClick={handleSubmit} className="primary-button w-[48%]">
+          Continue
+        </button>
       </div>
     </div>
   )

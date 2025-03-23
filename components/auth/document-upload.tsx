@@ -164,7 +164,7 @@ export default function DocumentUpload({ onNext, onBack, updateUserData }: Docum
             <div className="w-6 h-6 rounded-full bg-primary text-white flex items-center justify-center text-xs mb-2">
               4
             </div>
-            <div className="text-xs text-primary font-medium">Documents</div>
+            <div className="text-xs text-primary font-medium">KYC</div>
           </div>
           <div className="flex flex-col items-center flex-1">
             <div className="w-6 h-6 rounded-full bg-border text-text-tertiary flex items-center justify-center text-xs mb-2">
@@ -182,7 +182,7 @@ export default function DocumentUpload({ onNext, onBack, updateUserData }: Docum
       </div>
 
       <div className="bg-white rounded-xl p-5 shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
-        <h2 className="text-xl font-semibold mb-5">Document Verification</h2>
+        <h2 className="text-xl font-semibold mb-5">KYC Documents</h2>
 
         {activeCamera && (
           <div className="fixed inset-0 bg-black/80 z-50 flex flex-col p-5">
