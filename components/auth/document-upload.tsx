@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState, useRef } from "react"
 
 interface DocumentUploadProps {
@@ -18,9 +17,10 @@ export default function DocumentUpload({ onNext, onBack, updateUserData }: Docum
   const [aadhaarFront, setAadhaarFront] = useState<string | null>(null)
   const [aadhaarBack, setAadhaarBack] = useState<string | null>(null)
   const [panCard, setPanCard] = useState<string | null>(null)
-  const [activeCamera, setActiveCamera] = useState<"aadhaarFront" | "aadhaarBack" | "panCard" | null>(null)
+  const [activeCameraType, setActiveCameraType] = useState<"aadhaarFront" | "aadhaarBack" | "panCard" | null>(null)
+  const [cameraActive, setCameraActive] = useState(false)
   const [cameraError, setCameraError] = useState<string | null>(null)
-
+  
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
@@ -68,23 +68,21 @@ export default function DocumentUpload({ onNext, onBack, updateUserData }: Docum
         stopCamera()
       }
 
-      // For mobile devices, try to use the back camera specifically
-      const constraints = {
+      setActiveCameraType(type)
+
+      const stream = await navigator.mediaDevices.getUserMedia({
         video: { 
           facingMode: "environment",
           width: { ideal: 1920 },
           height: { ideal: 1080 }
         },
         audio: false
-      }
-
-      const stream = await navigator.mediaDevices.getUserMedia(constraints)
+      })
 
       if (videoRef.current) {
         videoRef.current.srcObject = stream
-        videoRef.current.play().catch(err => console.error("Error playing video:", err))
         streamRef.current = stream
-        setActiveCamera(type)
+        setCameraActive(true)
         setCameraError(null)
       }
     } catch (err) {
@@ -98,11 +96,12 @@ export default function DocumentUpload({ onNext, onBack, updateUserData }: Docum
       streamRef.current.getTracks().forEach((track) => track.stop())
       streamRef.current = null
     }
-    setActiveCamera(null)
+    setCameraActive(false)
+    setActiveCameraType(null)
   }
 
   const captureImage = () => {
-    if (!activeCamera || !videoRef.current || !canvasRef.current) return
+    if (!activeCameraType || !videoRef.current || !canvasRef.current) return
 
     const video = videoRef.current
     const canvas = canvasRef.current
@@ -115,7 +114,7 @@ export default function DocumentUpload({ onNext, onBack, updateUserData }: Docum
 
       const imageData = canvas.toDataURL("image/png")
 
-      switch (activeCamera) {
+      switch (activeCameraType) {
         case "aadhaarFront":
           setAadhaarFront(imageData)
           break
@@ -127,7 +126,7 @@ export default function DocumentUpload({ onNext, onBack, updateUserData }: Docum
           break
       }
 
-      const currentActiveCamera = activeCamera;
+      const currentActiveCamera = activeCameraType;
       setTimeout(() => {
         updateUserData({
           aadhaarFront: currentActiveCamera === "aadhaarFront" ? imageData : aadhaarFront,
@@ -140,7 +139,126 @@ export default function DocumentUpload({ onNext, onBack, updateUserData }: Docum
     }
   }
 
+  const retakePhoto = (type: "aadhaarFront" | "aadhaarBack" | "panCard") => {
+    switch (type) {
+      case "aadhaarFront":
+        setAadhaarFront(null)
+        break
+      case "aadhaarBack":
+        setAadhaarBack(null)
+        break
+      case "panCard":
+        setPanCard(null)
+        break
+    }
+
+    updateUserData({
+      aadhaarFront: type === "aadhaarFront" ? null : aadhaarFront,
+      aadhaarBack: type === "aadhaarBack" ? null : aadhaarBack,
+      panCard: type === "panCard" ? null : panCard,
+    })
+
+    startCamera(type)
+  }
+
   const isComplete = aadhaarFront && aadhaarBack && panCard
+
+  const getDocumentLabel = (type: "aadhaarFront" | "aadhaarBack" | "panCard") => {
+    switch (type) {
+      case "aadhaarFront":
+        return "Aadhaar Card (Front)"
+      case "aadhaarBack":
+        return "Aadhaar Card (Back)"
+      case "panCard":
+        return "PAN Card"
+    }
+  }
+
+  const renderDocumentSection = (type: "aadhaarFront" | "aadhaarBack" | "panCard") => {
+    const documentImage = type === "aadhaarFront" ? aadhaarFront : type === "aadhaarBack" ? aadhaarBack : panCard
+
+    return (
+      <div>
+        <label className="text-sm text-text-tertiary mb-2 block">{getDocumentLabel(type)}</label>
+        
+        {activeCameraType === type && cameraActive ? (
+          <div className="relative w-full aspect-square bg-black rounded-lg overflow-hidden mb-4">
+            <video
+              ref={videoRef}
+              autoPlay
+              playsInline
+              className="w-full h-full object-cover"
+            ></video>
+            
+            {cameraError && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center text-white p-4">
+                <i className="fas fa-exclamation-triangle text-4xl mb-3 text-danger"></i>
+                <p className="text-center">{cameraError}</p>
+              </div>
+            )}
+          </div>
+        ) : documentImage ? (
+          <div className="relative">
+            <img
+              src={documentImage}
+              alt={getDocumentLabel(type)}
+              className="w-full h-40 object-cover rounded-lg border border-border"
+            />
+            <div className="absolute top-2 right-2 flex gap-2">
+              <button
+                onClick={() => startCamera(type)}
+                className="w-8 h-8 bg-white rounded-full flex items-center justify-center shadow-md"
+              >
+                <i className="fas fa-camera text-primary"></i>
+              </button>
+              <button
+                onClick={() => retakePhoto(type)}
+                className="w-8 h-8 bg-white rounded-full flex items-center justify-center shadow-md"
+              >
+                <i className="fas fa-trash text-danger"></i>
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="flex gap-3">
+            <div
+              className="flex-1 border-2 border-dashed border-border rounded-lg p-4 flex flex-col items-center text-center cursor-pointer"
+              onClick={() => document.getElementById(`upload-${type}`)?.click()}
+            >
+              <div className="w-10 h-10 bg-[#F0F0F8] rounded-full flex items-center justify-center mb-2 text-primary">
+                <i className="fas fa-upload"></i>
+              </div>
+              <div className="text-sm">Upload</div>
+              <input
+                type="file"
+                id={`upload-${type}`}
+                className="hidden"
+                accept=".jpg,.jpeg,.png,.pdf"
+                onChange={(e) => handleFileChange(e, type)}
+              />
+            </div>
+
+            <div
+              className="flex-1 border-2 border-dashed border-border rounded-lg p-4 flex flex-col items-center text-center cursor-pointer"
+              onClick={() => startCamera(type)}
+            >
+              <div className="w-10 h-10 bg-[#F0F0F8] rounded-full flex items-center justify-center mb-2 text-primary">
+                <i className="fas fa-camera"></i>
+              </div>
+              <div className="text-sm">Camera</div>
+            </div>
+          </div>
+        )}
+
+        {activeCameraType === type && cameraActive && (
+          <button onClick={captureImage} className="primary-button w-full mt-3 mb-5">
+            <i className="fas fa-camera mr-2"></i>
+            Capture Photo
+          </button>
+        )}
+      </div>
+    )
+  }
 
   return (
     <div className="p-5 max-w-md mx-auto">
@@ -192,243 +310,12 @@ export default function DocumentUpload({ onNext, onBack, updateUserData }: Docum
       <div className="bg-white rounded-xl p-5 shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
         <h2 className="text-xl font-semibold mb-5">KYC Documents</h2>
 
-        {activeCamera && (
-          <div className="fixed inset-0 bg-black/80 z-50 flex flex-col p-5">
-            <div className="flex justify-between items-center mb-4 text-white">
-              <h3 className="text-lg font-medium">
-                Capture{" "}
-                {activeCamera === "aadhaarFront"
-                  ? "Aadhaar Front"
-                  : activeCamera === "aadhaarBack"
-                    ? "Aadhaar Back"
-                    : "PAN Card"}
-              </h3>
-              <button onClick={stopCamera} className="text-white">
-                <i className="fas fa-times text-xl"></i>
-              </button>
-            </div>
-
-            <div className="flex-1 relative bg-black rounded-lg overflow-hidden mb-4">
-              <video 
-                ref={videoRef} 
-                autoPlay 
-                playsInline 
-                className="w-full h-full object-contain"
-              ></video>
-
-              {cameraError && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center text-white p-4">
-                  <i className="fas fa-exclamation-triangle text-4xl mb-3 text-danger"></i>
-                  <p className="text-center">{cameraError}</p>
-                </div>
-              )}
-            </div>
-
-            <div className="flex justify-center mb-2">
-              <p className="text-white text-sm">Position document within frame and ensure it's clearly visible</p>
-            </div>
-
-            <button 
-              onClick={captureImage} 
-              className="primary-button flex items-center justify-center gap-2"
-            >
-              <i className="fas fa-camera"></i>
-              Capture
-            </button>
-          </div>
-        )}
-
         <canvas ref={canvasRef} className="hidden"></canvas>
 
         <div className="space-y-5 mb-6">
-          <div>
-            <label className="text-sm text-text-tertiary mb-2 block">Aadhaar Card (Front)</label>
-            {aadhaarFront ? (
-              <div className="relative">
-                <img
-                  src={aadhaarFront || "/placeholder.svg"}
-                  alt="Aadhaar Front"
-                  className="w-full h-40 object-cover rounded-lg border border-border"
-                />
-                <div className="absolute top-2 right-2 flex gap-2">
-                  <button
-                    onClick={() => startCamera("aadhaarFront")}
-                    className="w-8 h-8 bg-white rounded-full flex items-center justify-center shadow-md"
-                  >
-                    <i className="fas fa-camera text-primary"></i>
-                  </button>
-                  <button
-                    onClick={() => {
-                      setAadhaarFront(null)
-                      updateUserData({
-                        aadhaarFront: null,
-                        aadhaarBack,
-                        panCard,
-                      })
-                    }}
-                    className="w-8 h-8 bg-white rounded-full flex items-center justify-center shadow-md"
-                  >
-                    <i className="fas fa-trash text-danger"></i>
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div className="flex gap-3">
-                <div
-                  className="flex-1 border-2 border-dashed border-border rounded-lg p-4 flex flex-col items-center text-center cursor-pointer"
-                  onClick={() => document.getElementById("upload-aadhaar-front")?.click()}
-                >
-                  <div className="w-10 h-10 bg-[#F0F0F8] rounded-full flex items-center justify-center mb-2 text-primary">
-                    <i className="fas fa-upload"></i>
-                  </div>
-                  <div className="text-sm">Upload</div>
-                  <input
-                    type="file"
-                    id="upload-aadhaar-front"
-                    className="hidden"
-                    accept=".jpg,.jpeg,.png,.pdf"
-                    onChange={(e) => handleFileChange(e, "aadhaarFront")}
-                  />
-                </div>
-
-                <div
-                  className="flex-1 border-2 border-dashed border-border rounded-lg p-4 flex flex-col items-center text-center cursor-pointer"
-                  onClick={() => startCamera("aadhaarFront")}
-                >
-                  <div className="w-10 h-10 bg-[#F0F0F8] rounded-full flex items-center justify-center mb-2 text-primary">
-                    <i className="fas fa-camera"></i>
-                  </div>
-                  <div className="text-sm">Camera</div>
-                </div>
-              </div>
-            )}
-          </div>
-
-          <div>
-            <label className="text-sm text-text-tertiary mb-2 block">Aadhaar Card (Back)</label>
-            {aadhaarBack ? (
-              <div className="relative">
-                <img
-                  src={aadhaarBack || "/placeholder.svg"}
-                  alt="Aadhaar Back"
-                  className="w-full h-40 object-cover rounded-lg border border-border"
-                />
-                <div className="absolute top-2 right-2 flex gap-2">
-                  <button
-                    onClick={() => startCamera("aadhaarBack")}
-                    className="w-8 h-8 bg-white rounded-full flex items-center justify-center shadow-md"
-                  >
-                    <i className="fas fa-camera text-primary"></i>
-                  </button>
-                  <button
-                    onClick={() => {
-                      setAadhaarBack(null)
-                      updateUserData({
-                        aadhaarFront,
-                        aadhaarBack: null,
-                        panCard,
-                      })
-                    }}
-                    className="w-8 h-8 bg-white rounded-full flex items-center justify-center shadow-md"
-                  >
-                    <i className="fas fa-trash text-danger"></i>
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div className="flex gap-3">
-                <div
-                  className="flex-1 border-2 border-dashed border-border rounded-lg p-4 flex flex-col items-center text-center cursor-pointer"
-                  onClick={() => document.getElementById("upload-aadhaar-back")?.click()}
-                >
-                  <div className="w-10 h-10 bg-[#F0F0F8] rounded-full flex items-center justify-center mb-2 text-primary">
-                    <i className="fas fa-upload"></i>
-                  </div>
-                  <div className="text-sm">Upload</div>
-                  <input
-                    type="file"
-                    id="upload-aadhaar-back"
-                    className="hidden"
-                    accept=".jpg,.jpeg,.png,.pdf"
-                    onChange={(e) => handleFileChange(e, "aadhaarBack")}
-                  />
-                </div>
-
-                <div
-                  className="flex-1 border-2 border-dashed border-border rounded-lg p-4 flex flex-col items-center text-center cursor-pointer"
-                  onClick={() => startCamera("aadhaarBack")}
-                >
-                  <div className="w-10 h-10 bg-[#F0F0F8] rounded-full flex items-center justify-center mb-2 text-primary">
-                    <i className="fas fa-camera"></i>
-                  </div>
-                  <div className="text-sm">Camera</div>
-                </div>
-              </div>
-            )}
-          </div>
-
-          <div>
-            <label className="text-sm text-text-tertiary mb-2 block">PAN Card</label>
-            {panCard ? (
-              <div className="relative">
-                <img
-                  src={panCard || "/placeholder.svg"}
-                  alt="PAN Card"
-                  className="w-full h-40 object-cover rounded-lg border border-border"
-                />
-                <div className="absolute top-2 right-2 flex gap-2">
-                  <button
-                    onClick={() => startCamera("panCard")}
-                    className="w-8 h-8 bg-white rounded-full flex items-center justify-center shadow-md"
-                  >
-                    <i className="fas fa-camera text-primary"></i>
-                  </button>
-                  <button
-                    onClick={() => {
-                      setPanCard(null)
-                      updateUserData({
-                        aadhaarFront,
-                        aadhaarBack,
-                        panCard: null,
-                      })
-                    }}
-                    className="w-8 h-8 bg-white rounded-full flex items-center justify-center shadow-md"
-                  >
-                    <i className="fas fa-trash text-danger"></i>
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div className="flex gap-3">
-                <div
-                  className="flex-1 border-2 border-dashed border-border rounded-lg p-4 flex flex-col items-center text-center cursor-pointer"
-                  onClick={() => document.getElementById("upload-pan")?.click()}
-                >
-                  <div className="w-10 h-10 bg-[#F0F0F8] rounded-full flex items-center justify-center mb-2 text-primary">
-                    <i className="fas fa-upload"></i>
-                  </div>
-                  <div className="text-sm">Upload</div>
-                  <input
-                    type="file"
-                    id="upload-pan"
-                    className="hidden"
-                    accept=".jpg,.jpeg,.png,.pdf"
-                    onChange={(e) => handleFileChange(e, "panCard")}
-                  />
-                </div>
-
-                <div
-                  className="flex-1 border-2 border-dashed border-border rounded-lg p-4 flex flex-col items-center text-center cursor-pointer"
-                  onClick={() => startCamera("panCard")}
-                >
-                  <div className="w-10 h-10 bg-[#F0F0F8] rounded-full flex items-center justify-center mb-2 text-primary">
-                    <i className="fas fa-camera"></i>
-                  </div>
-                  <div className="text-sm">Camera</div>
-                </div>
-              </div>
-            )}
-          </div>
+          {renderDocumentSection("aadhaarFront")}
+          {renderDocumentSection("aadhaarBack")}
+          {renderDocumentSection("panCard")}
         </div>
 
         <div className="flex justify-between">
