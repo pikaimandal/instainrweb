@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import Image from "next/image"
+import { MiniKit } from '@worldcoin/minikit-js'
 
 interface LoginScreenProps {
   onLogin: () => void
@@ -15,14 +16,21 @@ export default function LoginScreen({ onLogin, onCreateAccount }: LoginScreenPro
 
   useEffect(() => {
     // Check if we're in World App on component mount
-    const isInstalled = window.MiniKit?.isInstalled()
-    setIsWorldApp(isInstalled)
+    const checkWorldApp = () => {
+      const isInstalled = MiniKit.isInstalled()
+      console.log('MiniKit installed:', isInstalled) // Debug log
+      setIsWorldApp(isInstalled)
+    }
+
+    // Check after a small delay to ensure MiniKit is initialized
+    const timer = setTimeout(checkWorldApp, 500)
+    return () => clearTimeout(timer)
   }, [])
 
   const handleWorldIDLogin = async () => {
     setError(null)
     
-    if (!window.MiniKit?.isInstalled()) {
+    if (!MiniKit.isInstalled()) {
       setError('Please open this app in World App to continue')
       return
     }
@@ -33,7 +41,7 @@ export default function LoginScreen({ onLogin, onCreateAccount }: LoginScreenPro
       const res = await fetch('/api/nonce')
       const { nonce } = await res.json()
 
-      const { commandPayload, finalPayload } = await window.MiniKit.commandsAsync.walletAuth({
+      const { commandPayload, finalPayload } = await MiniKit.commandsAsync.walletAuth({
         nonce: nonce,
         requestId: '0',
         expirationTime: new Date(new Date().getTime() + 7 * 24 * 60 * 60 * 1000),
