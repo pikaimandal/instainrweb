@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import Image from "next/image"
-import { MiniKit, VerificationLevel } from '@worldcoin/minikit-js'
+import { MiniKit } from '@worldcoin/minikit-js'
 
 interface WorldIDAuthProps {
   onNext: () => void
@@ -36,33 +36,40 @@ export default function WorldIDAuth({ onNext, onBack, updateUserData }: WorldIDA
       setIsVerifying(true)
       setError(null)
 
-      const { finalPayload } = await MiniKit.commandsAsync.verify({
-        action: 'create_account',
-        verification_level: VerificationLevel.Orb
+      // Use wallet authentication like the login page
+      const res = await fetch('/api/nonce')
+      const { nonce } = await res.json()
+
+      const { commandPayload, finalPayload } = await MiniKit.commandsAsync.walletAuth({
+        nonce: nonce,
+        requestId: '0',
+        expirationTime: new Date(new Date().getTime() + 7 * 24 * 60 * 60 * 1000),
+        notBefore: new Date(new Date().getTime() - 24 * 60 * 60 * 1000),
+        statement: 'Sign in to InstaINR with World ID to create your account',
       })
 
       if (finalPayload.status === 'error') {
-        throw new Error('Verification failed')
+        throw new Error('Authentication failed')
       }
 
-      // Verify the proof in the backend
-      const verifyResponse = await fetch('/api/verify', {
+      // Verify with backend
+      const verifyResponse = await fetch('/api/complete-siwe', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           payload: finalPayload,
-          action: 'create_account'
+          nonce,
         }),
       })
 
       const verifyResult = await verifyResponse.json()
       
-      if (verifyResult.status === 200) {
+      if (verifyResult.status === 'success') {
         setIsVerified(true)
-        // Use the nullifier_hash as the World ID
-        updateUserData({ worldId: finalPayload.nullifier_hash })
+        // Use the wallet address as the World ID
+        updateUserData({ worldId: finalPayload.address || MiniKit.walletAddress || "0x..." })
       } else {
         throw new Error('Verification failed')
       }

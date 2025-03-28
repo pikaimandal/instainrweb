@@ -113,7 +113,7 @@ export default function LoginScreen({ onLogin, onCreateAccount }: LoginScreenPro
           ) : (
             <>
               <Image src="/images/worldid-logo.png" alt="World ID" width={24} height={24} />
-              <span>Continue with World ID</span>
+              <span>Login with World ID</span>
             </>
           )}
         </button>
