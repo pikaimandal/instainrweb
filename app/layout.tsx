@@ -3,13 +3,14 @@ import "./globals.css"
 import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import { ThemeProvider } from "@/components/theme-provider"
+import MiniKitProvider from "@/components/minikit-provider"
 
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
   title: "InstaINR - Convert your crypto to INR instantly",
   description: "Convert your crypto to INR instantly with InstaINR",
-  generator: "v0.dev",
+  generator: "Pikai Mandal",
 }
 
 export default function RootLayout({
@@ -27,12 +28,15 @@ export default function RootLayout({
           crossOrigin="anonymous"
           referrerPolicy="no-referrer"
         />
+        <script type="module" src="https://cdn.jsdelivr.net/npm/@worldcoin/minikit-js@1.8.0/+esm"></script>
       </head>
-      <body className={inter.className}>
-        <ThemeProvider attribute="class" defaultTheme="light">
-          <div className="app-container">{children}</div>
-        </ThemeProvider>
-      </body>
+      <MiniKitProvider>
+        <body className={inter.className}>
+          <ThemeProvider attribute="class" defaultTheme="light">
+            <div className="app-container">{children}</div>
+          </ThemeProvider>
+        </body>
+      </MiniKitProvider>
     </html>
   )
 }

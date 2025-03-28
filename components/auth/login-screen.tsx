@@ -11,13 +11,56 @@ interface LoginScreenProps {
 export default function LoginScreen({ onLogin, onCreateAccount }: LoginScreenProps) {
   const [isLoading, setIsLoading] = useState(false)
 
-  const handleWorldIDLogin = () => {
-    setIsLoading(true)
-    // Simulate World ID authentication
-    setTimeout(() => {
+  const handleWorldIDLogin = async () => {
+    if (!window.MiniKit?.isInstalled()) {
+      console.error('MiniKit is not installed')
+      return
+    }
+
+    try {
+      setIsLoading(true)
+      
+      // Get nonce from your backend
+      const res = await fetch('/api/nonce')
+      const { nonce } = await res.json()
+
+      const { commandPayload, finalPayload } = await window.MiniKit.commandsAsync.walletAuth({
+        nonce: nonce,
+        requestId: '0',
+        expirationTime: new Date(new Date().getTime() + 7 * 24 * 60 * 60 * 1000),
+        notBefore: new Date(new Date().getTime() - 24 * 60 * 60 * 1000),
+        statement: 'Sign in to InstaINR with World ID',
+      })
+
+      if (finalPayload.status === 'error') {
+        throw new Error('Authentication failed')
+      }
+
+      // Verify the authentication with your backend
+      const verifyResponse = await fetch('/api/complete-siwe', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          payload: finalPayload,
+          nonce,
+        }),
+      })
+
+      const verifyResult = await verifyResponse.json()
+
+      if (verifyResult.status === 'success') {
+        onLogin()
+      } else {
+        throw new Error('Verification failed')
+      }
+    } catch (error) {
+      console.error('Login error:', error)
+      // You might want to show an error notification here
+    } finally {
       setIsLoading(false)
-      onLogin()
-    }, 1500)
+    }
   }
 
   return (
