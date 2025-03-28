@@ -118,7 +118,13 @@ export default function LoginScreen({ onLogin, onCreateAccount }: LoginScreenPro
           )}
         </button>
 
-        <button onClick={onCreateAccount} className="secondary-button w-full">
+        <button 
+          onClick={onCreateAccount} 
+          disabled={!isWorldApp}
+          className={`secondary-button w-full ${
+            !isWorldApp ? 'opacity-50 cursor-not-allowed' : ''
+          }`}
+        >
           Create New Account
         </button>
 

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import Image from "next/image"
+import { MiniKit, VerificationLevel } from '@worldcoin/minikit-js'
 
 interface WorldIDAuthProps {
   onNext: () => void
@@ -12,26 +13,65 @@ interface WorldIDAuthProps {
 export default function WorldIDAuth({ onNext, onBack, updateUserData }: WorldIDAuthProps) {
   const [isVerifying, setIsVerifying] = useState(false)
   const [isVerified, setIsVerified] = useState(false)
-  const [progress, setProgress] = useState(0)
+  const [error, setError] = useState<string | null>(null)
+  const [isWorldApp, setIsWorldApp] = useState<boolean | null>(null)
 
-  const handleVerify = () => {
-    setIsVerifying(true)
+  useEffect(() => {
+    const checkWorldApp = () => {
+      const isInstalled = MiniKit.isInstalled()
+      setIsWorldApp(isInstalled)
+    }
 
-    // Simulate World ID verification process
-    const interval = setInterval(() => {
-      setProgress((prev) => {
-        const newProgress = prev + 10
-        if (newProgress >= 100) {
-          clearInterval(interval)
-          setIsVerified(true)
-          setTimeout(() => {
-            updateUserData({ worldId: "0x71C...8F3E" })
-          }, 0)
-          return 100
-        }
-        return newProgress
+    const timer = setTimeout(checkWorldApp, 500)
+    return () => clearTimeout(timer)
+  }, [])
+
+  const handleVerify = async () => {
+    if (!MiniKit.isInstalled()) {
+      setError('Please open this app in World App to continue')
+      return
+    }
+
+    try {
+      setIsVerifying(true)
+      setError(null)
+
+      const { finalPayload } = await MiniKit.commandsAsync.verify({
+        action: 'create_account',
+        verification_level: VerificationLevel.Orb
       })
-    }, 300)
+
+      if (finalPayload.status === 'error') {
+        throw new Error('Verification failed')
+      }
+
+      // Verify the proof in the backend
+      const verifyResponse = await fetch('/api/verify', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          payload: finalPayload,
+          action: 'create_account'
+        }),
+      })
+
+      const verifyResult = await verifyResponse.json()
+      
+      if (verifyResult.status === 200) {
+        setIsVerified(true)
+        // Use the nullifier_hash as the World ID
+        updateUserData({ worldId: finalPayload.nullifier_hash })
+      } else {
+        throw new Error('Verification failed')
+      }
+    } catch (error: any) {
+      setError(error.message || 'Failed to verify')
+      console.error('Verification error:', error)
+    } finally {
+      setIsVerifying(false)
+    }
   }
 
   useEffect(() => {
@@ -102,15 +142,15 @@ export default function WorldIDAuth({ onNext, onBack, updateUserData }: WorldIDA
             keep your account secure.
           </p>
 
-          {isVerifying && !isVerified && (
-            <div className="w-full mb-4">
-              <div className="h-2 bg-[#F0F0F8] rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-primary rounded-full transition-all duration-300"
-                  style={{ width: `${progress}%` }}
-                ></div>
-              </div>
-              <p className="text-center text-sm text-text-tertiary mt-2">Verifying your World ID...</p>
+          {!isWorldApp && (
+            <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-yellow-800 text-sm w-full">
+              ⚠️ This app requires World App to function. Please open it in World App.
+            </div>
+          )}
+
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-800 text-sm w-full">
+              ❌ {error}
             </div>
           )}
 
@@ -122,8 +162,10 @@ export default function WorldIDAuth({ onNext, onBack, updateUserData }: WorldIDA
           ) : (
             <button
               onClick={handleVerify}
-              disabled={isVerifying}
-              className="primary-button w-full flex items-center justify-center gap-2"
+              disabled={isVerifying || !isWorldApp}
+              className={`primary-button w-full flex items-center justify-center gap-2 ${
+                !isWorldApp ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
             >
               {isVerifying ? (
                 <div className="w-5 h-5 border-2 border-white/30 rounded-full border-t-white animate-spin"></div>
