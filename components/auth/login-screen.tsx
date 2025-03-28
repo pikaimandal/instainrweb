@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Image from "next/image"
 
 interface LoginScreenProps {
@@ -10,17 +10,26 @@ interface LoginScreenProps {
 
 export default function LoginScreen({ onLogin, onCreateAccount }: LoginScreenProps) {
   const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [isWorldApp, setIsWorldApp] = useState<boolean | null>(null)
+
+  useEffect(() => {
+    // Check if we're in World App on component mount
+    const isInstalled = window.MiniKit?.isInstalled()
+    setIsWorldApp(isInstalled)
+  }, [])
 
   const handleWorldIDLogin = async () => {
+    setError(null)
+    
     if (!window.MiniKit?.isInstalled()) {
-      console.error('MiniKit is not installed')
+      setError('Please open this app in World App to continue')
       return
     }
 
     try {
       setIsLoading(true)
       
-      // Get nonce from your backend
       const res = await fetch('/api/nonce')
       const { nonce } = await res.json()
 
@@ -36,7 +45,6 @@ export default function LoginScreen({ onLogin, onCreateAccount }: LoginScreenPro
         throw new Error('Authentication failed')
       }
 
-      // Verify the authentication with your backend
       const verifyResponse = await fetch('/api/complete-siwe', {
         method: 'POST',
         headers: {
@@ -55,9 +63,9 @@ export default function LoginScreen({ onLogin, onCreateAccount }: LoginScreenPro
       } else {
         throw new Error('Verification failed')
       }
-    } catch (error) {
+    } catch (error: any) {
+      setError(error.message || 'Failed to authenticate')
       console.error('Login error:', error)
-      // You might want to show an error notification here
     } finally {
       setIsLoading(false)
     }
@@ -73,10 +81,24 @@ export default function LoginScreen({ onLogin, onCreateAccount }: LoginScreenPro
       <p className="text-base text-text-secondary mb-10 text-center">Convert your crypto to INR instantly</p>
 
       <div className="w-full max-w-sm">
+        {!isWorldApp && (
+          <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-yellow-800 text-sm">
+            ⚠️ This app requires World App to function. Please open it in World App.
+          </div>
+        )}
+
+        {error && (
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-800 text-sm">
+            ❌ {error}
+          </div>
+        )}
+
         <button
           onClick={handleWorldIDLogin}
-          disabled={isLoading}
-          className="primary-button w-full flex items-center justify-center gap-3 mb-4"
+          disabled={isLoading || !isWorldApp}
+          className={`primary-button w-full flex items-center justify-center gap-3 mb-4 ${
+            !isWorldApp ? 'opacity-50 cursor-not-allowed' : ''
+          }`}
         >
           {isLoading ? (
             <div className="w-5 h-5 border-2 border-white/30 rounded-full border-t-white animate-spin"></div>
