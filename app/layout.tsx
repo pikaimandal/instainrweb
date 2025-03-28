@@ -28,7 +28,6 @@ export default function RootLayout({
           crossOrigin="anonymous"
           referrerPolicy="no-referrer"
         />
-        <script type="module" src="https://cdn.jsdelivr.net/npm/@worldcoin/minikit-js@1.8.0/+esm"></script>
       </head>
       <MiniKitProvider>
         <body className={inter.className}>
